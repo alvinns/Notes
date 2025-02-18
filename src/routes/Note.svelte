@@ -45,8 +45,8 @@
     // Minimum distance between notes (in percent of viewport)
     const MIN_NOTE_DISTANCE = 0.1; // Very small value to trigger repulsion only when almost touching
     // Repulsion strength for collision avoidance
-    const REPULSION_STRENGTH = 0.01; // Reduced repulsion strength for gentler movement
-    const REPULSION_DAMPING = 0.5; // Damping factor to slow down the repulsion
+    const REPULSION_STRENGTH = 0.001; // Very low repulsion strength
+    const REPULSION_DAMPING = 0.05; // Very low damping factor
 
     function updatePosition() {
         if (isPinned) return;
@@ -70,57 +70,57 @@
     }
 
     function handleCollisions() {
-    if (isPinned || !browser || !noteElement) return;
-    
-    const currentNoteRect = noteElement.getBoundingClientRect();
-    const currentWidth = currentNoteRect.width;
-    const currentHeight = currentNoteRect.height;
-    
-    // Convert from pixel coordinates to viewport percentages
-    const minDistanceX = (MIN_NOTE_DISTANCE / 100) * window.innerWidth;
-    const minDistanceY = (MIN_NOTE_DISTANCE / 100) * window.innerHeight;
-    
-    // Get all note elements
-    const noteElements = document.querySelectorAll('.note-container:not(.pinned-note)');
-    
-    noteElements.forEach((elem: Element) => {
-        if (elem === noteElement || elem.getAttribute('data-note-id') === note.id.toString()) return;
+        if (isPinned || !browser || !noteElement) return;
         
-        const otherRect = elem.getBoundingClientRect();
-        const centerX1 = currentNoteRect.left + currentWidth / 2;
-        const centerY1 = currentNoteRect.top + currentHeight / 2;
-        const centerX2 = otherRect.left + otherRect.width / 2;
-        const centerY2 = otherRect.top + otherRect.height / 2;
+        const currentNoteRect = noteElement.getBoundingClientRect();
+        const currentWidth = currentNoteRect.width;
+        const currentHeight = currentNoteRect.height;
         
-        const distanceX = centerX2 - centerX1;
-        const distanceY = centerY2 - centerY1;
-        const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
+        // Convert from pixel coordinates to viewport percentages
+        const minDistanceX = (MIN_NOTE_DISTANCE / 100) * window.innerWidth;
+        const minDistanceY = (MIN_NOTE_DISTANCE / 100) * window.innerHeight;
         
-        // Calculate minimum required distance based on the sizes of both notes
-        const requiredDistance = Math.max(
-            currentWidth / 2 + otherRect.width / 2 + minDistanceX,
-            currentHeight / 2 + otherRect.height / 2 + minDistanceY
-        );
+        // Get all note elements
+        const noteElements = document.querySelectorAll('.note-container:not(.pinned-note)');
         
-        // If too close, apply repulsion to avoid collision
-        if (distance < requiredDistance) {
-            const angle = Math.atan2(distanceY, distanceX);
-            const repulsionX = Math.cos(angle) * REPULSION_STRENGTH * REPULSION_DAMPING;
-            const repulsionY = Math.sin(angle) * REPULSION_STRENGTH * REPULSION_DAMPING;
+        noteElements.forEach((elem: Element) => {
+            if (elem === noteElement || elem.getAttribute('data-note-id') === note.id.toString()) return;
             
-            // Adjust target position to avoid overlap
-            targetX -= repulsionX;
-            targetY -= repulsionY;
+            const otherRect = elem.getBoundingClientRect();
+            const centerX1 = currentNoteRect.left + currentWidth / 2;
+            const centerY1 = currentNoteRect.top + currentHeight / 2;
+            const centerX2 = otherRect.left + otherRect.width / 2;
+            const centerY2 = otherRect.top + otherRect.height / 2;
             
-            // Ensure the note does not overlap by adjusting the position further if needed
-            const overlapX = Math.max(0, requiredDistance - distance);
-            const overlapY = Math.max(0, requiredDistance - distance);
+            const distanceX = centerX2 - centerX1;
+            const distanceY = centerY2 - centerY1;
+            const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
             
-            targetX -= overlapX * Math.cos(angle) * REPULSION_DAMPING;
-            targetY -= overlapY * Math.sin(angle) * REPULSION_DAMPING;
-        }
-    });
-}
+            // Calculate minimum required distance based on the sizes of both notes
+            const requiredDistance = Math.max(
+                currentWidth / 2 + otherRect.width / 2 + minDistanceX,
+                currentHeight / 2 + otherRect.height / 2 + minDistanceY
+            );
+            
+            // If too close, apply repulsion to avoid collision
+            if (distance < requiredDistance) {
+                const angle = Math.atan2(distanceY, distanceX);
+                const repulsionX = Math.cos(angle) * REPULSION_STRENGTH * REPULSION_DAMPING;
+                const repulsionY = Math.sin(angle) * REPULSION_STRENGTH * REPULSION_DAMPING;
+                
+                // Adjust target position to avoid overlap
+                targetX -= repulsionX;
+                targetY -= repulsionY;
+                
+                // Ensure the note does not overlap by adjusting the position further if needed
+                const overlapX = Math.max(0, requiredDistance - distance);
+                const overlapY = Math.max(0, requiredDistance - distance);
+                
+                targetX -= overlapX * Math.cos(angle) * REPULSION_DAMPING;
+                targetY -= overlapY * Math.sin(angle) * REPULSION_DAMPING;
+            }
+        });
+    }
 
     // Handle repulsion from other notes
     function handleRepulsion(event: CustomEvent) {

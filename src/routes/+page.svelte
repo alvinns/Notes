@@ -3,6 +3,7 @@
     import Note from './Note.svelte';
     import Modal from './Modal.svelte';
     import NoteDetail from './NoteDetail.svelte';
+    import { scale } from 'svelte/transition';
     
     let showModal = false;
     let showDetailModal = false;
@@ -69,6 +70,16 @@
         overflow: hidden;
     }
     
+    .canvas {
+        position: absolute;
+        top: 15vh; /* Adjust based on pinned section height */
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.1);
+        overflow: hidden;
+    }
+    
     .pinned-notes-container {
         position: fixed;
         top: 0;
@@ -100,13 +111,13 @@
     .create-button {
         position: fixed;
         bottom: 20px;
-        right: 20px;
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
-        background: white;
-        color: black;
-        font-size: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 10px 40px; /* Increased padding for a longer button */
+        border-radius: 10px;
+        background: black;
+        color: white;
+        font-size: 16px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -114,12 +125,11 @@
         cursor: pointer;
         border: none;
         z-index: 100;
-        transition: transform 0.3s, background 0.3s;
+        transition: background 0.3s;
     }
     
     .create-button:hover {
-        transform: scale(1.1);
-        background: #f0f0f0;
+        background: #333;
     }
     
     .no-pinned-notes {
@@ -143,13 +153,18 @@
         <div class="no-pinned-notes">No pinned notes</div>
     {/if}
     
-    <!-- Regular floating notes -->
-    {#each unpinnedNotes as note (note.id)}
-        <Note note={note} isPinned={false} on:openDetail={openDetailModal} />
-    {/each}
+    <!-- Canvas for notes -->
+    <div class="canvas">
+        <!-- Regular floating notes -->
+        {#each unpinnedNotes as note (note.id)}
+            <Note note={note} isPinned={false} on:openDetail={openDetailModal} />
+        {/each}
+    </div>
     
     <!-- Create button -->
-    <button class="create-button" on:click={createNote}>+</button>
+    <button class="create-button" on:click={createNote} transition:scale={{ duration: 300, easing: t => t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1 }}>
+        Create
+    </button>
     
     <!-- Modals -->
     {#if showModal}
