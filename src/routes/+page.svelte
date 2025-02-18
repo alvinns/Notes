@@ -12,14 +12,12 @@
     // Function to create a new note
     function createNote() {
         const newId = $notes.length > 0 ? Math.max(...$notes.map(n => n.id)) + 1 : 1;
-        const newX = Math.random() * 60 + 20; // Random position between 20% and 80% of screen width
-        const newY = Math.random() * 40 + 30; // Random position between 30% and 70% of screen height
+        const newX = Math.random() * 60 + 20;
+        const newY = Math.random() * 40 + 30;
         
-        // Colors array to randomly select from
-        const colors = ['blue', 'yellow', 'red', 'green'];
+        const colors = ['#2C3E50', '#FFD700', '#C0392B', '#27AE60'];
         const randomColor = colors[Math.floor(Math.random() * colors.length)];
         
-        // Shapes array to randomly select from
         const shapes: ('square' | 'circle')[] = ['square', 'circle'];
         const randomShape = shapes[Math.floor(Math.random() * shapes.length)];
         
@@ -36,7 +34,6 @@
         
         notes.update(currentNotes => [...currentNotes, newNote]);
         
-        // Open the edit modal for the new note
         selectedNoteId = newId;
         showModal = true;
     }
@@ -46,7 +43,6 @@
         showDetailModal = true;
     }
     
-    // Get pinned and unpinned notes
     $: pinnedNotes = $notes.filter(note => note.pinned);
     $: unpinnedNotes = $notes.filter(note => !note.pinned);
 </script>
@@ -56,75 +52,73 @@
     :global(body) {
         margin: 0;
         padding: 0;
-        background: #e9c6e5;
+        background: radial-gradient(circle at center, #1D2B4D, #03040B);
         color: white;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-        overflow: hidden;
+        font-family: 'Fira Sans', sans-serif;
+        font-weight: 500;
         height: 100vh;
+        display: flex;
+        flex-direction: column;
     }
     
     .app-container {
         position: relative;
-        width: 100vw;
-        height: 100vh;
-        overflow: hidden;
+        padding: 20px;
+        box-sizing: border-box;
+        display: grid;
+        place-items: center;
+        flex-grow: 1;
+        overflow-y: auto;
+        background: transparent;
     }
     
+    /* Pinned notes section */
     .pinned-notes-container {
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
-        background-color: rgba(0, 0, 0, 0.8);
-        padding: 10px 0;
+        padding: 15px 0;
         z-index: 100;
         display: flex;
-        justify-content: center;
-        overflow-x: auto;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-    }
-    
-    .pinned-notes-wrapper {
-        display: flex;
-        flex-wrap: nowrap;
         align-items: center;
-        padding: 0 20px;
+        justify-content: center;
+        gap: 20px;
+        background: linear-gradient(180deg, #1A203C 0%, #0F162C 100%);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 1px 5px rgba(0,0,0,0.3);
     }
     
-    .pinned-note-label {
-        margin-right: 15px;
-        font-size: 14px;
-        opacity: 0.7;
-        white-space: nowrap;
+    .pinned-notes-label {
+        color: #BEC6E1;
+        font-size: 16px;
+        text-transform: uppercase;
+        text-align: center;
+        min-width: 120px;
+        margin-right: 0;
     }
     
+    /* Create button */
     .create-button {
-        position: fixed;
+        position: absolute;
         bottom: 20px;
         left: 50%;
         transform: translateX(-50%);
-        padding: 10px 40px; /* Increased padding for a longer button */
-        border-radius: 10px;
-        background: black;
+        padding: 15px 40px;
+        border-radius: 25px;
+        background: linear-gradient(45deg, #34415E, #26345B);
         color: white;
-        font-size: 16px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
-        cursor: pointer;
+        font-size: 18px;
         border: none;
-        z-index: 100;
-        transition: background 0.3s;
-    }
-    
-    .create-button:hover {
-        background: #333;
+        cursor: pointer;
     }
     
     .no-pinned-notes {
+        text-align: center;
+        color: #9A9AAA;
+        margin: 20px;
         font-style: italic;
-        opacity: 0.5;
+        font-weight: 300;
     }
 </style>
 
@@ -132,15 +126,13 @@
     <!-- Pinned notes section -->
     {#if pinnedNotes.length > 0}
         <div class="pinned-notes-container">
-            <div class="pinned-notes-wrapper">
-                <span class="pinned-note-label">Pinned:</span>
-                {#each pinnedNotes as note (note.id)}
-                    <Note note={note} isPinned={true} on:openDetail={openDetailModal} />
-                {/each}
-            </div>
+            <div class="pinned-notes-label">Pinned Notes:</div>
+            {#each pinnedNotes as note (note.id)}
+                <Note note={note} isPinned={true} on:openDetail={openDetailModal} />
+            {/each}
         </div>
     {:else}
-        <div class="no-pinned-notes">No pinned notes</div>
+        <div class="no-pinned-notes">No pinned notes available</div>
     {/if}
     
     <!-- Regular floating notes -->
@@ -149,9 +141,7 @@
     {/each}
     
     <!-- Create button -->
-    <button class="create-button" on:click={createNote} transition:scale={{ duration: 300, easing: t => t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1 }}>
-        Create
-    </button>
+    <button class="create-button" on:click={createNote}>Create</button>
     
     <!-- Modals -->
     {#if showModal}

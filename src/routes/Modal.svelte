@@ -7,30 +7,12 @@
     
     const dispatch = createEventDispatcher();
     
-    let currentNote: any = null;
-    let editMode = false; // Default to false, but will be set to true when creating a new note
     let title = '';
     let content = '';
-    let color = 'blue';
+    let color = '#2C3E50'; // Default color
     let shape: 'square' | 'circle' = 'square';
     let pinned = false;
     let errorMessage = '';
-    
-    $: if (noteId !== null && $notes) {
-        currentNote = $notes.find(n => n.id === noteId);
-        if (currentNote) {
-            title = currentNote.title;
-            content = currentNote.content || '';
-            color = currentNote.color;
-            shape = currentNote.shape;
-            pinned = currentNote.pinned || false;
-        }
-    }
-    
-    function toggleEditMode() {
-        editMode = !editMode;
-        errorMessage = '';
-    }
     
     function closeModal() {
         showModal = false;
@@ -43,19 +25,30 @@
             return;
         }
         
-        if (noteId === null || !currentNote) {
-            return;
+        if (noteId === null) {
+            // Create a new note with x and y properties
+            const newNote = {
+                id: Date.now(), // Generate a unique ID
+                title,
+                content,
+                color,
+                shape,
+                pinned,
+                x: 0, // Default x position
+                y: 0  // Default y position
+            };
+            notes.update(allNotes => [...allNotes, newNote]);
+        } else {
+            // Update an existing note
+            notes.update(allNotes => 
+                allNotes.map(note => 
+                    note.id === noteId ? 
+                    { ...note, title, content, color, shape, pinned } : 
+                    note
+                )
+            );
         }
         
-        notes.update(allNotes => 
-            allNotes.map(note => 
-                note.id === noteId ? 
-                { ...note, title, content, color, shape, pinned } : 
-                note
-            )
-        );
-        
-        editMode = false;
         closeModal(); // Close modal after saving changes
     }
     
@@ -64,61 +57,47 @@
         
         if (confirm('Are you sure you want to delete this note?')) {
             notes.update(allNotes => allNotes.filter(note => note.id !== noteId));
-            closeModal(); // This was already here, but it's important to keep
+            closeModal(); // Close modal after deleting the note
         }
-    }
-    
-    function togglePin() {
-        pinned = !pinned;
-        if (!editMode) {
-            // If not in edit mode, save pinned state immediately
-            notes.update(allNotes => 
-                allNotes.map(note => 
-                    note.id === noteId ? 
-                    { ...note, pinned } : 
-                    note
-                )
-            );
-        }
-    }
-    
-    // Set editMode to true when creating a new note (noteId is null)
-    $: if (noteId === null) {
-        editMode = true;
     }
 </script>
 
 <style>
+    /* Modal Styling */
     .modal {
         position: fixed;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        background: white;
-        border-radius: 10px;
-        box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.3);
+        background: linear-gradient(180deg, #181C2B 0%, #0F131F 100%);
+        border-radius: 15px;
+        box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.5);
         width: 90%;
         max-width: 500px;
         max-height: 80vh;
         overflow-y: auto;
-        color: black;
+        color: white;
         z-index: 1000;
+        padding: 25px;
+        display: flex;
+        flex-direction: column;
+        transition: transform 0.3s;
     }
-    
+
     .modal-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 15px 20px;
-        border-bottom: 1px solid #eee;
+        margin-bottom: 20px;
     }
-    
+
     .modal-title {
         font-size: 20px;
         font-weight: bold;
         margin: 0;
+        color: #BEC6E1;
     }
-    
+
     .close-btn {
         background: none;
         border: none;
@@ -132,109 +111,95 @@
         display: flex;
         align-items: center;
         justify-content: center;
+        color: white;
+        transition: color 0.3s;
     }
-    
+
+    .close-btn:hover {
+        color: #FFD700;
+    }
+
     .modal-content {
-        padding: 20px;
-    }
-    
-    .modal-footer {
+        flex-grow: 1;
         display: flex;
-        justify-content: space-between;
-        padding: 15px 20px;
-        border-top: 1px solid #eee;
+        flex-direction: column;
     }
-    
-    .btn {
-        padding: 8px 15px;
-        border-radius: 5px;
-        cursor: pointer;
-        border: none;
-        font-size: 14px;
-        transition: background 0.3s;
-    }
-    
-    .btn-save {
-        background: #2ecc71;
-        color: white;
-    }
-    
-    .btn-delete {
-        background: #e74c3c;
-        color: white;
-    }
-    
+
     .form-group {
         margin-bottom: 15px;
+        display: flex;
+        flex-direction: column;
     }
-    
+
     .form-group label {
-        display: block;
+        color: #BEC6E1;
         margin-bottom: 5px;
-        font-weight: bold;
+        font-weight: 500;
     }
-    
+
     .form-control {
-        width: 100%;
-        padding: 8px;
+        background: #343D4E;
+        border: none;
         border-radius: 5px;
-        border: 1px solid #ddd;
+        padding: 12px;
+        color: white;
+        transition: background 0.3s;
     }
-    
+
+    .form-control:focus {
+        background: #4C5670;
+    }
+
     textarea.form-control {
         min-height: 150px;
         resize: vertical;
     }
-    
+
     .error {
-        color: #e74c3c;
+        color: #FF2D2D;
         font-size: 14px;
         margin-top: 5px;
-    }
-    
-    .note-indicator {
-        display: inline-block;
-        width: 20px;
-        height: 20px;
-        border-radius: 3px;
-        margin-right: 10px;
-        vertical-align: middle;
-    }
-    
-    .checkbox-container {
-        display: flex;
-        align-items: center;
-        margin: 10px 0;
+        text-align: center;
     }
 
-    .checkbox-container input[type="checkbox"] {
-        margin-right: 10px;
-    }
-    
-    .modal-title-container {
+    .modal-footer {
+        margin-top: 20px;
         display: flex;
-        align-items: center;
+        justify-content: space-between;
     }
-    
-    .pinned-icon {
-        margin-left: 10px;
+
+    .btn {
+        padding: 12px 20px;
+        border-radius: 25px;
+        cursor: pointer;
+        border: none;
         font-size: 16px;
-        color: #f39c12;
+        transition: all 0.3s;
+        background: linear-gradient(45deg, #2C3E50, #1A202C);
+        color: white;
+    }
+
+    .btn:hover {
+        transform: translateY(-2px);
+        background: linear-gradient(45deg, #222B38, #1C202A);
+    }
+
+    .btn-save {
+        background: linear-gradient(45deg, #4CC26D, #27AE60);
+    }
+
+    .btn-save:hover {
+        background: linear-gradient(45deg, #55D277, #27AE60);
+    }
+
+    .btn-delete {
+        background: linear-gradient(45deg, #C23D4C, #9D2B3A);
     }
 </style>
 
 <div class="modal">
     <div class="modal-header">
-        <div class="modal-title-container">
-            <span 
-                class="note-indicator" 
-                style="background-color: {color}; border-radius: {shape === 'circle' ? '50%' : '3px'};">
-            </span>
-            <h2 class="modal-title">{title}</h2>
-            {#if pinned}
-                <span class="pinned-icon">📌</span>
-            {/if}
-        </div>
+        <h2 class="modal-title">{noteId ? 'Edit Note' : 'Create Note'}</h2>
         <button class="close-btn" on:click={closeModal}>&times;</button>
     </div>
     
@@ -265,10 +230,10 @@
         <div class="form-group">
             <label for="color">Color</label>
             <select id="color" class="form-control" bind:value={color}>
-                <option value="blue">Blue</option>
-                <option value="yellow">Yellow</option>
-                <option value="red">Red</option>
-                <option value="green">Green</option>
+                <option value="#2C3E50">Blue</option>
+                <option value="#FFD700">Yellow</option>
+                <option value="#C0392B">Red</option>
+                <option value="#27AE60">Green</option>
             </select>
         </div>
         
@@ -287,7 +252,9 @@
     </div>
     
     <div class="modal-footer">
-        <button class="btn btn-save" on:click={saveChanges}>Save Changes</button>
-        <button class="btn btn-delete" on:click={deleteNote}>Delete</button>
+        <button class="btn btn-save" on:click={saveChanges}>{noteId ? 'Save Changes' : 'Create Note'}</button>
+        {#if noteId}
+            <button class="btn btn-delete" on:click={deleteNote}>Delete</button>
+        {/if}
     </div>
 </div>

@@ -48,6 +48,17 @@
     const REPULSION_STRENGTH = 0.001; // Very low repulsion strength
     const REPULSION_DAMPING = 0.05; // Very low damping factor
 
+    // This function returns the actual color based on the color name or hex
+    function getActualColor(colorValue: string): string {
+        switch(colorValue) {
+            case 'blue':
+            case '#2C3E50':
+                return '#0000FF'; // this was freakyyy took 30s in to solve this sh**
+            default:
+                return colorValue; // Return the color as is for other colors
+        }
+    }
+
     function updatePosition() {
         if (isPinned) return;
         
@@ -337,6 +348,9 @@
             openNote(event);
         }
     }
+
+    // Get the actual color to use for the note
+    $: actualColor = getActualColor(note.color);
 </script>
 
 <style>
@@ -428,7 +442,7 @@
             on:click={openNote}
             on:keydown={handleKey}
             aria-label="Open pinned note: {note.title}"
-            style="background-color:{note.color}; border-radius: {note.shape === 'circle' ? '50%' : '10px'};">
+            style="background-color:{actualColor}; border-radius: {note.shape === 'circle' ? '50%' : '10px'};">
         </button>
         <div class="note-title pinned-title">{note.title}</div>
     </div>
@@ -446,7 +460,7 @@
             on:click={openNote}
             on:keydown={handleKey}
             aria-label="Open note: {note.title}"
-            style="background-color:{note.color}; border-radius: {note.shape === 'circle' ? '50%' : '10px'};">
+            style="background-color:{actualColor}; border-radius: {note.shape === 'circle' ? '50%' : '10px'};">
         </button>
 
         <div class="note-title">{note.title}</div>

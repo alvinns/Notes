@@ -11,7 +11,7 @@
     let editMode = false;
     let title = '';
     let content = '';
-    let color = 'blue';
+    let color = '#2C3E50';
     let shape: 'square' | 'circle' = 'square';
     let pinned = false;
     let errorMessage = '';
@@ -56,6 +56,7 @@
         );
         
         editMode = false;
+        closeModal();
     }
     
     function deleteNote() {
@@ -70,7 +71,6 @@
     function togglePin() {
         pinned = !pinned;
         if (!editMode) {
-            // If not in edit mode, save pinned state immediately
             notes.update(allNotes => 
                 allNotes.map(note => 
                     note.id === noteId ? 
@@ -82,37 +82,43 @@
     }
 </script>
 
+<!-- svelte-ignore css_unused_selector -->
 <style>
-    .modal {
-        position: fixed;
+    /* Note Detail Styling */
+    .note-detail {
+        position: absolute;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        background: white;
-        border-radius: 10px;
-        box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.3);
+        background: linear-gradient(180deg, #181C2B 0%, #0F131F 100%);
+        border-radius: 20px;
+        box-shadow: 0px 5px 30px rgba(0, 0, 0, 0.6);
         width: 90%;
-        max-width: 500px;
+        max-width: 700px;
         max-height: 80vh;
         overflow-y: auto;
-        color: black;
+        color: white;
         z-index: 1000;
+        padding: 30px;
+        display: flex;
+        flex-direction: column;
+        transition: transform 0.3s;
     }
-    
-    .modal-header {
+
+    .detail-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 15px 20px;
-        border-bottom: 1px solid #eee;
+        margin-bottom: 20px;
     }
-    
-    .modal-title {
-        font-size: 20px;
+
+    .note-title {
+        font-size: 22px;
         font-weight: bold;
+        color: #BEC6E1;
         margin: 0;
     }
-    
+
     .close-btn {
         background: none;
         border: none;
@@ -126,196 +132,203 @@
         display: flex;
         align-items: center;
         justify-content: center;
+        color: #8C95B3;
+        transition: color 0.3s;
     }
-    
-    .modal-content {
-        padding: 20px;
+
+    .close-btn:hover {
+        color: #FFD700;
     }
-    
-    .note-content {
-        white-space: pre-wrap;
-        line-height: 1.5;
-    }
-    
-    .modal-footer {
+
+    .detail-content {
+        flex: 1;
         display: flex;
-        justify-content: space-between;
-        padding: 15px 20px;
-        border-top: 1px solid #eee;
+        flex-direction: column;
+        gap: 20px;
     }
-    
-    .btn {
-        padding: 8px 15px;
-        border-radius: 5px;
-        cursor: pointer;
-        border: none;
+
+    .note-preview {
+        padding: 20px;
+        background: linear-gradient(to right, #34415E 0%, #26345B 100%);
+        border-radius: 15px;
+        box-shadow: inset 0 3px 10px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+        margin-bottom: 20px;
+    }
+
+    .note-preview p {
+        color: white;
+        line-height: 1.6;
+        hyphens: auto;
+    }
+
+    .editor-controls {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 20px;
+        margin-top: 20px;
+    }
+
+    .editor-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .editor-label {
+        color: #BEC6E1;
         font-size: 14px;
+        font-weight: 500;
+        width: 120px;
+    }
+
+    .editor-input {
+        background: #343D4E;
+        border: none;
+        border-radius: 7px;
+        padding: 12px;
+        color: white;
+        flex: 1;
+        font-family: 'Fira Sans', sans-serif;
         transition: background 0.3s;
     }
-    
-    .btn-edit {
-        background: #3498db;
-        color: white;
-    }
-    
-    .btn-save {
-        background: #2ecc71;
-        color: white;
-    }
-    
-    .btn-delete {
-        background: #e74c3c;
-        color: white;
-    }
-    
-    .btn-pin {
-        background: #f39c12;
-        color: white;
+
+    .editor-input:focus {
+        background: #4C5670;
     }
 
-    .btn-unpin {
-        background: #95a5a6;
-        color: white;
-    }
-    
-    .form-group {
-        margin-bottom: 15px;
-    }
-    
-    .form-group label {
-        display: block;
-        margin-bottom: 5px;
-        font-weight: bold;
-    }
-    
-    .form-control {
-        width: 100%;
-        padding: 8px;
-        border-radius: 5px;
-        border: 1px solid #ddd;
-    }
-    
-    textarea.form-control {
-        min-height: 150px;
-        resize: vertical;
-    }
-    
-    .error {
-        color: #e74c3c;
-        font-size: 14px;
-        margin-top: 5px;
-    }
-    
-    .note-indicator {
-        display: inline-block;
-        width: 20px;
-        height: 20px;
-        border-radius: 3px;
-        margin-right: 10px;
-        vertical-align: middle;
-    }
-    
-    .checkbox-container {
-        display: flex;
-        align-items: center;
-        margin: 10px 0;
+    .editor-color {
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        cursor: pointer;
+        transition: transform 0.3s;
     }
 
-    .checkbox-container input[type="checkbox"] {
-        margin-right: 10px;
+    .editor-color:hover {
+        transform: scale(1.1);
     }
-    
-    .modal-title-container {
+
+    .detail-actions {
         display: flex;
-        align-items: center;
+        justify-content: space-between;
+        margin-top: 30px;
     }
-    
-    .pinned-icon {
-        margin-left: 10px;
+
+    .action-btn {
+        padding: 12px 25px;
+        border-radius: 25px;
+        cursor: pointer;
+        border: none;
         font-size: 16px;
-        color: #f39c12;
+        transition: all 0.3s;
+        background: linear-gradient(45deg, #2C3E50, #1A202C);
+        color: white;
+    }
+
+    .action-btn:hover {
+        transform: translateY(-2px);
+        background: linear-gradient(45deg, #222B38, #1C202A);
+    }
+
+    .action-btn.primary {
+        background: linear-gradient(45deg, #4CC26D, #27AE60);
+    }
+
+    .action-btn.primary:hover {
+        background: linear-gradient(45deg, #55D277, #27AE60);
+    }
+
+    .pinned-indicator {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        color: #FFD700;
+        font-size: 14px;
+        margin-top: 10px;
     }
 </style>
 
-<div class="modal">
-    <div class="modal-header">
-        <div class="modal-title-container">
-            <span 
-                class="note-indicator" 
-                style="background-color: {color}; border-radius: {shape === 'circle' ? '50%' : '3px'};">
-            </span>
-            <h2 class="modal-title">{title}</h2>
-            {#if pinned}
-                <span class="pinned-icon">📌</span>
-            {/if}
+<div class="note-detail">
+    <div class="detail-header">
+        <div class="note-info">
+            <h2 class="note-title">{title}</h2>
         </div>
         <button class="close-btn" on:click={closeModal}>&times;</button>
     </div>
     
-    <div class="modal-content">
+    <div class="detail-content">
         {#if editMode}
-            <div class="form-group">
-                <label for="title">Title</label>
+            <div class="editor-group">
+                <span class="editor-label">Title:</span>
                 <input 
                     type="text" 
-                    id="title" 
-                    class="form-control"
+                    class="editor-input"
                     bind:value={title}
-                    on:input={() => errorMessage = ''}
+                    required
                 />
-                {#if errorMessage}
-                    <p class="error">{errorMessage}</p>
-                {/if}
             </div>
-            
-            <div class="form-group">
-                <label for="content">Content</label>
+
+            <div class="editor-group">
+                <span class="editor-label">Content:</span>
                 <textarea 
-                    id="content" 
-                    class="form-control"
+                    rows="10" 
+                    class="editor-input"
                     bind:value={content}>
                 </textarea>
             </div>
-            
-            <div class="form-group">
-                <label for="color">Color</label>
-                <select id="color" class="form-control" bind:value={color}>
-                    <option value="blue">Blue</option>
-                    <option value="yellow">Yellow</option>
-                    <option value="red">Red</option>
-                    <option value="green">Green</option>
+
+            <div class="editor-group">
+                <span class="editor-label">Color:</span>
+                <div class="editor-color" style="background: {color};"></div>
+                <select class="editor-input" bind:value={color}>
+                    <option value="#2C3E50">Blue</option>
+                    <option value="#FFD700">Yellow</option>
+                    <option value="#C0392B">Red</option>
+                    <option value="#27AE60">Green</option>
                 </select>
             </div>
-            
-            <div class="form-group">
-                <label for="shape">Shape</label>
-                <select id="shape" class="form-control" bind:value={shape}>
+
+            <div class="editor-group">
+                <span class="editor-label">Shape:</span>
+                <div class="editor-color" style="border-radius: {shape === 'circle' ? '50%' : '3px'};"></div>
+                <select class="editor-input" bind:value={shape}>
                     <option value="square">Square</option>
                     <option value="circle">Circle</option>
                 </select>
             </div>
-            
-            <div class="checkbox-container">
-                <input type="checkbox" id="pinned-edit" bind:checked={pinned}>
-                <label for="pinned-edit">Pin note to top</label>
+
+            <div class="editor-group">
+                <span class="editor-label">Pinned:</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" bind:checked={pinned}>
+                    <span class="slider"></span>
+                </label>
             </div>
         {:else}
-            <p class="note-content">{content || 'No content'}</p>
+            <div class="note-preview">
+                <p>{content || 'No content'}</p>
+            </div>
+            <div class="pinned-indicator">
+                {#if pinned}
+                    <span>📌 Pinned to top</span>
+                {:else}
+                    <span>Unpinned</span>
+                {/if}
+            </div>
         {/if}
     </div>
     
-    <div class="modal-footer">
+    <div class="detail-actions">
         {#if editMode}
-            <button class="btn btn-save" on:click={saveChanges}>Save Changes</button>
-            <button class="btn btn-delete" on:click={deleteNote}>Delete</button>
+            <button class="action-btn primary" on:click={saveChanges}>Save Changes</button>
+            <button class="action-btn danger" on:click={deleteNote}>Delete</button>
         {:else}
-            <div>
-                <button class="btn btn-edit" on:click={toggleEditMode}>Edit</button>
-                <button class="btn {pinned ? 'btn-unpin' : 'btn-pin'}" on:click={togglePin}>
-                    {pinned ? 'Unpin' : 'Pin'}
-                </button>
-            </div>
-            <button class="btn btn-delete" on:click={deleteNote}>Delete</button>
+            <button class="action-btn primary" on:click={toggleEditMode}>Edit</button>
+            <button class="action-btn" on:click={togglePin}>
+                { pinned ? 'Unpin' : 'Pin' }
+            </button>
+            <button class="action-btn danger" on:click={deleteNote}>Delete</button>
         {/if}
     </div>
 </div>
