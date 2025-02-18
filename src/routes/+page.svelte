@@ -70,16 +70,6 @@
         overflow: hidden;
     }
     
-    .canvas {
-        position: absolute;
-        top: 15vh; /* Adjust based on pinned section height */
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(255, 255, 255, 0.1);
-        overflow: hidden;
-    }
-    
     .pinned-notes-container {
         position: fixed;
         top: 0;
@@ -153,13 +143,10 @@
         <div class="no-pinned-notes">No pinned notes</div>
     {/if}
     
-    <!-- Canvas for notes -->
-    <div class="canvas">
-        <!-- Regular floating notes -->
-        {#each unpinnedNotes as note (note.id)}
-            <Note note={note} isPinned={false} on:openDetail={openDetailModal} />
-        {/each}
-    </div>
+    <!-- Regular floating notes -->
+    {#each unpinnedNotes as note (note.id)}
+        <Note note={note} isPinned={false} on:openDetail={openDetailModal} />
+    {/each}
     
     <!-- Create button -->
     <button class="create-button" on:click={createNote} transition:scale={{ duration: 300, easing: t => t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1 }}>
