@@ -19,6 +19,9 @@
     let dx = 0;
     let dy = 0;
     let animationId: number | undefined;
+    let lastTouchX: number = 0;
+    let lastTouchY: number = 0;
+    let interactionType: 'mouse' | 'touch' | null = null;
 
     // Define the reserved space for pinned notes (in vh units)
     const PINNED_SECTION_HEIGHT = 15; // Adjust this value based on your pinned section height
@@ -101,13 +104,27 @@
         if (typeof animationId !== 'undefined') {
             cancelAnimationFrame(animationId);
         }
+        // Clean up any remaining event listeners
+        if (browser) {
+            window.removeEventListener("mousemove", drag);
+            window.removeEventListener("mouseup", stopDrag);
+            window.removeEventListener("touchmove", touchDrag, { passive: false } as EventListenerOptions);
+            window.removeEventListener("touchend", stopTouchDrag);
+            window.removeEventListener("touchcancel", stopTouchDrag);
+        }
     });
 
+    // Mouse event handlers
     function startDrag(event: MouseEvent) {
         if (isPinned) return;
         
+        // Only handle mouse events if we're not already handling touch
+        if (interactionType === 'touch') return;
+        
+        interactionType = 'mouse';
         isDragging = true;
         wasDragged = false;
+        
         if (browser) {
             window.addEventListener("mousemove", drag);
             window.addEventListener("mouseup", stopDrag);
@@ -115,7 +132,11 @@
     }
 
     function stopDrag() {
+        if (interactionType !== 'mouse') return;
+        
         isDragging = false;
+        interactionType = null;
+        
         if (browser) {
             window.removeEventListener("mousemove", drag);
             window.removeEventListener("mouseup", stopDrag);
@@ -123,13 +144,74 @@
     }
 
     function drag(event: MouseEvent) {
-        if (isDragging && browser && !isPinned) {
+        if (isDragging && browser && !isPinned && interactionType === 'mouse') {
             targetX += (event.movementX / window.innerWidth) * 100;
             targetY += (event.movementY / window.innerHeight) * 100;
             
             // Apply constraints
             targetX = Math.min(90, Math.max(5, targetX)); // Reduced left boundary to 5%
             targetY = Math.min(95, Math.max(PINNED_SECTION_HEIGHT, targetY));
+            
+            updatePosition();
+            wasDragged = true;
+        }
+    }
+
+    // Touch event handlers
+    function startTouchDrag(event: TouchEvent) {
+        if (isPinned) return;
+        
+        // Only handle touch events if we're not already handling mouse
+        if (interactionType === 'mouse') return;
+        
+        interactionType = 'touch';
+        isDragging = true;
+        wasDragged = false;
+        
+        if (event.touches.length > 0) {
+            lastTouchX = event.touches[0].clientX;
+            lastTouchY = event.touches[0].clientY;
+        }
+        
+        if (browser) {
+            window.addEventListener("touchmove", touchDrag, { passive: false });
+            window.addEventListener("touchend", stopTouchDrag);
+            window.addEventListener("touchcancel", stopTouchDrag);
+        }
+    }
+
+    function stopTouchDrag() {
+        if (interactionType !== 'touch') return;
+        
+        isDragging = false;
+        interactionType = null;
+        
+        if (browser) {
+            window.removeEventListener("touchmove", touchDrag);
+            window.removeEventListener("touchend", stopTouchDrag);
+            window.removeEventListener("touchcancel", stopTouchDrag);
+        }
+    }
+
+    function touchDrag(event: TouchEvent) {
+        if (isDragging && browser && !isPinned && interactionType === 'touch' && event.touches.length > 0) {
+            // Only prevent default on touch events we're handling
+            event.preventDefault();
+            
+            const touch = event.touches[0];
+            const movementX = touch.clientX - lastTouchX;
+            const movementY = touch.clientY - lastTouchY;
+            
+            targetX += (movementX / window.innerWidth) * 100;
+            targetY += (movementY / window.innerHeight) * 100;
+            
+            // Apply constraints
+            targetX = Math.min(90, Math.max(5, targetX));
+            targetY = Math.min(95, Math.max(PINNED_SECTION_HEIGHT, targetY));
+            
+            // Update for next touchmove event
+            lastTouchX = touch.clientX;
+            lastTouchY = touch.clientY;
             
             updatePosition();
             wasDragged = true;
@@ -186,6 +268,7 @@
         will-change: transform;
         pointer-events: auto;
         border: none;
+        touch-action: none; /* Prevents browser handling of touch interactions */
     }
 
     .pinned-btn {
@@ -249,6 +332,7 @@
         <button 
             class="note-btn"
             on:mousedown={startDrag}
+            on:touchstart={startTouchDrag}
             on:click={openNote}
             on:keydown={handleKey}
             aria-label="Open note: {note.title}"
