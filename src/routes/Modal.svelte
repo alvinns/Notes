@@ -56,6 +56,7 @@
         );
         
         editMode = false;
+        closeModal(); // Close modal after saving changes
     }
     
     function deleteNote() {
@@ -63,7 +64,7 @@
         
         if (confirm('Are you sure you want to delete this note?')) {
             notes.update(allNotes => allNotes.filter(note => note.id !== noteId));
-            closeModal();
+            closeModal(); // This was already here, but it's important to keep
         }
     }
     

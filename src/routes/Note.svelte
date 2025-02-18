@@ -3,8 +3,23 @@
     import { browser } from '$app/environment';
     import { createEventDispatcher } from 'svelte';
 
-    export let note = { id: 0, title: "Untitled", content: "", color: "blue", shape: "square", x: 100, y: 100, pinned: false };
+    // Define the type for a note
+    interface Note {
+        id: number;
+        title: string;
+        content: string;
+        color: string;
+        shape: string;
+        x: number;
+        y: number;
+        pinned: boolean;
+        baseX?: number;
+        baseY?: number;
+    }
+
+    export let note: Note = { id: 0, title: "Untitled", content: "", color: "blue", shape: "square", x: 100, y: 100, pinned: false };
     export let isPinned = false;
+    export const allNotes: Note[] = []; // Array of all notes for collision detection
     const dispatch = createEventDispatcher();
 
     let baseX: number = browser ? (note.x / window.innerWidth) * 100 : 10;
@@ -22,9 +37,16 @@
     let lastTouchX: number = 0;
     let lastTouchY: number = 0;
     let interactionType: 'mouse' | 'touch' | null = null;
+    let noteElement: HTMLElement | null = null;
 
     // Define the reserved space for pinned notes (in vh units)
     const PINNED_SECTION_HEIGHT = 15; // Adjust this value based on your pinned section height
+    
+    // Minimum distance between notes (in percent of viewport)
+    const MIN_NOTE_DISTANCE = 0.1; // Very small value to trigger repulsion only when almost touching
+    // Repulsion strength for collision avoidance
+    const REPULSION_STRENGTH = 0.01; // Reduced repulsion strength for gentler movement
+    const REPULSION_DAMPING = 0.5; // Damping factor to slow down the repulsion
 
     function updatePosition() {
         if (isPinned) return;
@@ -37,7 +59,7 @@
 
         if (browser) {
             let existingNotes = JSON.parse(localStorage.getItem('notes') || '[]');
-            const noteIndex = existingNotes.findIndex((n: any) => n.id === note.id);
+            const noteIndex = existingNotes.findIndex((n: Note) => n.id === note.id);
             if (noteIndex >= 0) {
                 existingNotes[noteIndex] = { ...existingNotes[noteIndex], baseX, baseY };
             } else {
@@ -47,10 +69,77 @@
         }
     }
 
+    function handleCollisions() {
+    if (isPinned || !browser || !noteElement) return;
+    
+    const currentNoteRect = noteElement.getBoundingClientRect();
+    const currentWidth = currentNoteRect.width;
+    const currentHeight = currentNoteRect.height;
+    
+    // Convert from pixel coordinates to viewport percentages
+    const minDistanceX = (MIN_NOTE_DISTANCE / 100) * window.innerWidth;
+    const minDistanceY = (MIN_NOTE_DISTANCE / 100) * window.innerHeight;
+    
+    // Get all note elements
+    const noteElements = document.querySelectorAll('.note-container:not(.pinned-note)');
+    
+    noteElements.forEach((elem: Element) => {
+        if (elem === noteElement || elem.getAttribute('data-note-id') === note.id.toString()) return;
+        
+        const otherRect = elem.getBoundingClientRect();
+        const centerX1 = currentNoteRect.left + currentWidth / 2;
+        const centerY1 = currentNoteRect.top + currentHeight / 2;
+        const centerX2 = otherRect.left + otherRect.width / 2;
+        const centerY2 = otherRect.top + otherRect.height / 2;
+        
+        const distanceX = centerX2 - centerX1;
+        const distanceY = centerY2 - centerY1;
+        const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
+        
+        // Calculate minimum required distance based on the sizes of both notes
+        const requiredDistance = Math.max(
+            currentWidth / 2 + otherRect.width / 2 + minDistanceX,
+            currentHeight / 2 + otherRect.height / 2 + minDistanceY
+        );
+        
+        // If too close, apply repulsion to avoid collision
+        if (distance < requiredDistance) {
+            const angle = Math.atan2(distanceY, distanceX);
+            const repulsionX = Math.cos(angle) * REPULSION_STRENGTH * REPULSION_DAMPING;
+            const repulsionY = Math.sin(angle) * REPULSION_STRENGTH * REPULSION_DAMPING;
+            
+            // Adjust target position to avoid overlap
+            targetX -= repulsionX;
+            targetY -= repulsionY;
+            
+            // Ensure the note does not overlap by adjusting the position further if needed
+            const overlapX = Math.max(0, requiredDistance - distance);
+            const overlapY = Math.max(0, requiredDistance - distance);
+            
+            targetX -= overlapX * Math.cos(angle) * REPULSION_DAMPING;
+            targetY -= overlapY * Math.sin(angle) * REPULSION_DAMPING;
+        }
+    });
+}
+
+    // Handle repulsion from other notes
+    function handleRepulsion(event: CustomEvent) {
+        if (event.detail.noteId === note.id && !isDragging && !isPinned) {
+            targetX += event.detail.repulsionX * REPULSION_DAMPING;
+            targetY += event.detail.repulsionY * REPULSION_DAMPING;
+            
+            // Apply constraints
+            targetX = Math.min(90, Math.max(5, targetX));
+            targetY = Math.min(95, Math.max(PINNED_SECTION_HEIGHT, targetY));
+            
+            updatePosition();
+        }
+    }
+
     onMount(() => {
         if (browser && !isPinned) {
             let savedNotes = JSON.parse(localStorage.getItem('notes') || '[]');
-            let currentNote = savedNotes.find((n: any) => n.id === note.id);
+            let currentNote = savedNotes.find((n: Note) => n.id === note.id);
             if (currentNote) {
                 baseX = currentNote.baseX;
                 // Ensure loaded notes are also below pinned section
@@ -79,6 +168,11 @@
                     updatePosition();
                 }
                 
+                // If we're dragging, check for collisions
+                if (isDragging) {
+                    handleCollisions();
+                }
+                
                 animationId = requestAnimationFrame(animate);
             }
             animationId = requestAnimationFrame(animate);
@@ -97,6 +191,9 @@
 
                 updatePosition();
             });
+            
+            // Listen for repulsion events
+            document.addEventListener('note-repulsion', handleRepulsion as EventListener);
         }
     });
 
@@ -111,6 +208,7 @@
             window.removeEventListener("touchmove", touchDrag, { passive: false } as EventListenerOptions);
             window.removeEventListener("touchend", stopTouchDrag);
             window.removeEventListener("touchcancel", stopTouchDrag);
+            document.removeEventListener('note-repulsion', handleRepulsion as EventListener);
         }
     });
 
@@ -133,6 +231,11 @@
 
     function stopDrag() {
         if (interactionType !== 'mouse') return;
+        
+        // When stopping drag, run collision handling one more time
+        if (browser && !isPinned) {
+            handleCollisions();
+        }
         
         isDragging = false;
         interactionType = null;
@@ -182,6 +285,11 @@
 
     function stopTouchDrag() {
         if (interactionType !== 'touch') return;
+        
+        // When stopping drag, run collision handling one more time
+        if (browser && !isPinned) {
+            handleCollisions();
+        }
         
         isDragging = false;
         interactionType = null;
@@ -327,6 +435,8 @@
 {:else}
     <div
         class="note-container"
+        bind:this={noteElement}
+        data-note-id={note.id}
         style="left: {baseX}vw; top: {baseY}vh; transform: translate({dx}px, {dy}px);">
         
         <button 
