@@ -61,11 +61,11 @@
 
     function updatePosition() {
     if (isPinned) return;
-
+    
     baseX = Math.max(5, Math.min(90, baseX));
 
     // Dynamically calculate the maximum Y position based on note height
-    let maxBaseY = 95; // Fallback default
+    let maxBaseY = 95; // Default fallback value
     if (noteElement) {
         const noteHeightPx = noteElement.clientHeight;
         const noteHeightPercentage = (noteHeightPx / window.innerHeight) * 100;
@@ -268,17 +268,17 @@
         targetX += (event.movementX / window.innerWidth) * 100;
         targetY += (event.movementY / window.innerHeight) * 100;
 
-        // Dynamically calculate the maximum Y position based on note height
+        // Apply constraints
+        targetX = Math.max(5, Math.min(90, targetX));
+
+        let maxBaseY = 95; // Fallback if noteElement is not available
         if (noteElement) {
             const noteHeightPx = noteElement.clientHeight;
             const noteHeightPercentage = (noteHeightPx / window.innerHeight) * 100;
-            targetY = Math.min(100 - noteHeightPercentage, targetY);
-        } else {
-            targetY = Math.min(95, targetY);
+            maxBaseY = 100 - noteHeightPercentage;
         }
 
-        targetX = Math.max(5, Math.min(90, targetX));
-        targetY = Math.max(PINNED_SECTION_HEIGHT, targetY);
+        targetY = Math.min(maxBaseY, Math.max(PINNED_SECTION_HEIGHT, targetY));
 
         updatePosition();
         wasDragged = true;
@@ -336,16 +336,16 @@
         targetX += (movementX / window.innerWidth) * 100;
         targetY += (movementY / window.innerHeight) * 100;
 
+        targetX = Math.max(5, Math.min(90, targetX));
+
+        let maxBaseY = 95; // Fallback if noteElement is not available
         if (noteElement) {
             const noteHeightPx = noteElement.clientHeight;
             const noteHeightPercentage = (noteHeightPx / window.innerHeight) * 100;
-            targetY = Math.min(100 - noteHeightPercentage, targetY);
-        } else {
-            targetY = Math.min(95, targetY);
+            maxBaseY = 100 - noteHeightPercentage;
         }
 
-        targetX = Math.max(5, Math.min(90, targetX));
-        targetY = Math.max(PINNED_SECTION_HEIGHT, targetY);
+        targetY = Math.min(maxBaseY, Math.max(PINNED_SECTION_HEIGHT, targetY));
 
         lastTouchX = touch.clientX;
         lastTouchY = touch.clientY;
