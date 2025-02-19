@@ -60,25 +60,31 @@
     }
 
     function updatePosition() {
-        if (isPinned) return;
-        
-        baseX = Math.min(90, Math.max(5, baseX)); // Reduced left boundary to 5%
-        
-        // Ensure notes stay below the pinned section
-        const minY = PINNED_SECTION_HEIGHT;
-        baseY = Math.min(95, Math.max(minY, baseY));
+    if (isPinned) return;
 
-        if (browser) {
-            let existingNotes = JSON.parse(localStorage.getItem('notes') || '[]');
-            const noteIndex = existingNotes.findIndex((n: Note) => n.id === note.id);
-            if (noteIndex >= 0) {
-                existingNotes[noteIndex] = { ...existingNotes[noteIndex], baseX, baseY };
-            } else {
-                existingNotes.push({ id: note.id, title: note.title, baseX, baseY });
-            }
-            localStorage.setItem('notes', JSON.stringify(existingNotes));
-        }
+    baseX = Math.max(5, Math.min(90, baseX));
+
+    // Dynamically calculate the maximum Y position based on note height
+    let maxBaseY = 95; // Fallback default
+    if (noteElement) {
+        const noteHeightPx = noteElement.clientHeight;
+        const noteHeightPercentage = (noteHeightPx / window.innerHeight) * 100;
+        maxBaseY = 100 - noteHeightPercentage;
     }
+
+    baseY = Math.max(PINNED_SECTION_HEIGHT, Math.min(maxBaseY, baseY));
+
+    if (browser) {
+        let existingNotes = JSON.parse(localStorage.getItem('notes') || '[]');
+        const noteIndex = existingNotes.findIndex((n: Note) => n.id === note.id);
+        if (noteIndex >= 0) {
+            existingNotes[noteIndex] = { ...existingNotes[noteIndex], baseX, baseY };
+        } else {
+            existingNotes.push({ id: note.id, title: note.title, baseX, baseY });
+        }
+        localStorage.setItem('notes', JSON.stringify(existingNotes));
+    }
+}
 
     function handleCollisions() {
         if (isPinned || !browser || !noteElement) return;
@@ -258,18 +264,26 @@
     }
 
     function drag(event: MouseEvent) {
-        if (isDragging && browser && !isPinned && interactionType === 'mouse') {
-            targetX += (event.movementX / window.innerWidth) * 100;
-            targetY += (event.movementY / window.innerHeight) * 100;
-            
-            // Apply constraints
-            targetX = Math.min(90, Math.max(5, targetX)); // Reduced left boundary to 5%
-            targetY = Math.min(95, Math.max(PINNED_SECTION_HEIGHT, targetY));
-            
-            updatePosition();
-            wasDragged = true;
+    if (isDragging && browser && !isPinned && interactionType === 'mouse') {
+        targetX += (event.movementX / window.innerWidth) * 100;
+        targetY += (event.movementY / window.innerHeight) * 100;
+
+        // Dynamically calculate the maximum Y position based on note height
+        if (noteElement) {
+            const noteHeightPx = noteElement.clientHeight;
+            const noteHeightPercentage = (noteHeightPx / window.innerHeight) * 100;
+            targetY = Math.min(100 - noteHeightPercentage, targetY);
+        } else {
+            targetY = Math.min(95, targetY);
         }
+
+        targetX = Math.max(5, Math.min(90, targetX));
+        targetY = Math.max(PINNED_SECTION_HEIGHT, targetY);
+
+        updatePosition();
+        wasDragged = true;
     }
+}
 
     // Touch event handlers
     function startTouchDrag(event: TouchEvent) {
@@ -313,29 +327,33 @@
     }
 
     function touchDrag(event: TouchEvent) {
-        if (isDragging && browser && !isPinned && interactionType === 'touch' && event.touches.length > 0) {
-            // Only prevent default on touch events we're handling
-            event.preventDefault();
-            
-            const touch = event.touches[0];
-            const movementX = touch.clientX - lastTouchX;
-            const movementY = touch.clientY - lastTouchY;
-            
-            targetX += (movementX / window.innerWidth) * 100;
-            targetY += (movementY / window.innerHeight) * 100;
-            
-            // Apply constraints
-            targetX = Math.min(90, Math.max(5, targetX));
-            targetY = Math.min(95, Math.max(PINNED_SECTION_HEIGHT, targetY));
-            
-            // Update for next touchmove event
-            lastTouchX = touch.clientX;
-            lastTouchY = touch.clientY;
-            
-            updatePosition();
-            wasDragged = true;
+    if (isDragging && browser && !isPinned && interactionType === 'touch' && event.touches.length > 0) {
+        event.preventDefault();
+        const touch = event.touches[0];
+        const movementX = touch.clientX - lastTouchX;
+        const movementY = touch.clientY - lastTouchY;
+
+        targetX += (movementX / window.innerWidth) * 100;
+        targetY += (movementY / window.innerHeight) * 100;
+
+        if (noteElement) {
+            const noteHeightPx = noteElement.clientHeight;
+            const noteHeightPercentage = (noteHeightPx / window.innerHeight) * 100;
+            targetY = Math.min(100 - noteHeightPercentage, targetY);
+        } else {
+            targetY = Math.min(95, targetY);
         }
+
+        targetX = Math.max(5, Math.min(90, targetX));
+        targetY = Math.max(PINNED_SECTION_HEIGHT, targetY);
+
+        lastTouchX = touch.clientX;
+        lastTouchY = touch.clientY;
+
+        updatePosition();
+        wasDragged = true;
     }
+}
 
     function openNote(event: Event) {
         if (!wasDragged) {

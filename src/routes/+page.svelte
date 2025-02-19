@@ -9,11 +9,10 @@
     let showDetailModal = false;
     let selectedNoteId: number | null = null;
     
-    // Function to create a new note
     function createNote() {
         const newId = $notes.length > 0 ? Math.max(...$notes.map(n => n.id)) + 1 : 1;
-        const newX = Math.random() * 60 + 20;
-        const newY = Math.random() * 40 + 30;
+        const newX = Math.random() * 40 + 20;
+        const newY = Math.random() * 30 + 20;
         
         const colors = ['#2C3E50', '#FFD700', '#C0392B', '#27AE60'];
         const randomColor = colors[Math.floor(Math.random() * colors.length)];
@@ -48,31 +47,37 @@
 </script>
 
 <style>
-    /* Global page styling */
+    :global(html) {
+        height: 100%;
+        overflow: hidden;
+    }
+
     :global(body) {
         margin: 0;
         padding: 0;
-        background: radial-gradient(circle at center, #1D2B4D, #03040B);
         color: white;
         font-family: 'Fira Sans', sans-serif;
         font-weight: 500;
-        height: 100vh;
-        display: flex;
-        flex-direction: column;
+        height: 100%;
+        width: 100%;
+        overflow: hidden;
+        /* Remove position: fixed to allow background to show */
+        background: radial-gradient(circle at center, #1D2B4D, #03040B);
     }
     
     .app-container {
-        position: relative;
+        position: absolute; /* Changed from relative */
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 100%;
         padding: 20px;
         box-sizing: border-box;
         display: grid;
         place-items: center;
-        flex-grow: 1;
-        overflow-y: auto;
-        background: transparent;
+        overflow: hidden;
     }
     
-    /* Pinned notes section */
     .pinned-notes-container {
         position: fixed;
         top: 0;
@@ -87,6 +92,9 @@
         background: linear-gradient(180deg, #1A203C 0%, #0F162C 100%);
         border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         box-shadow: 0 1px 5px rgba(0,0,0,0.3);
+        max-height: 120px;
+        overflow-x: auto;
+        overflow-y: hidden;
     }
     
     .pinned-notes-label {
@@ -96,11 +104,11 @@
         text-align: center;
         min-width: 120px;
         margin-right: 0;
+        flex-shrink: 0;
     }
     
-    /* Create button */
     .create-button {
-        position: absolute;
+        position: fixed;
         bottom: 20px;
         left: 50%;
         transform: translateX(-50%);
@@ -111,6 +119,7 @@
         font-size: 18px;
         border: none;
         cursor: pointer;
+        z-index: 100;
     }
     
     .no-pinned-notes {
@@ -119,11 +128,12 @@
         margin: 20px;
         font-style: italic;
         font-weight: 300;
+        position: absolute;
+        top: 70px;
     }
 </style>
 
 <div class="app-container">
-    <!-- Pinned notes section -->
     {#if pinnedNotes.length > 0}
         <div class="pinned-notes-container">
             <div class="pinned-notes-label">Pinned Notes:</div>
@@ -135,15 +145,12 @@
         <div class="no-pinned-notes">No pinned notes available</div>
     {/if}
     
-    <!-- Regular floating notes -->
     {#each unpinnedNotes as note (note.id)}
         <Note note={note} isPinned={false} on:openDetail={openDetailModal} />
     {/each}
     
-    <!-- Create button -->
     <button class="create-button" on:click={createNote}>Create</button>
     
-    <!-- Modals -->
     {#if showModal}
         <Modal bind:showModal bind:noteId={selectedNoteId} />
     {/if}
